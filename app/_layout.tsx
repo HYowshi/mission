@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Animated, Easing } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-import { initializeDailyQuests } from './utils/questSystem'; // Sửa lỗi Import tại đây
+import { initializeDailyQuests } from './utils/questSystem';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const THEME_BLUE_DARK = '#0055ff';
@@ -17,7 +17,6 @@ export default function RootLayout() {
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Khởi tạo hệ thống nhiệm vụ
     initializeDailyQuests();
 
     const systemScanner = setInterval(async () => {

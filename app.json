@@ -22,8 +22,16 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
+      "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "pwa": {
+        "enabled": true,
+        "display": "standalone",
+        "orientation": "portrait",
+        "themeColor": "#00f0ff",
+        "backgroundColor": "#020202"
+      }
     },
     "plugins": [
       "expo-router",

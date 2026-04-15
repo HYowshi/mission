@@ -1,8 +1,8 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View, Platform } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 const NEON_CYAN = '#00f0ff';
 const NEON_PURPLE = '#b000ff';
@@ -12,47 +12,53 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBarFloating,
+        tabBarShowLabel: true,
         tabBarActiveTintColor: NEON_CYAN,
         tabBarInactiveTintColor: '#444444',
-        tabBarLabelStyle: styles.tabBarLabel,
-        tabBarHideOnKeyboard: true, // Tự động ẩn khi bật bàn phím
+        tabBarStyle: styles.tabBarFloating,
+        tabBarHideOnKeyboard: true,
         tabBarBackground: () => (
-          <View style={styles.tabBarBackground}>
-            {/* Dải gradient Tím - Xanh viền mép trên Navbar */}
-            <LinearGradient 
-              colors={[NEON_PURPLE, NEON_CYAN]} 
-              start={{x: 0, y: 0}} 
-              end={{x: 1, y: 0}} 
-              style={styles.accentLine} 
-            />
-          </View>
+          Platform.OS === 'ios' ? (
+            <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
+          ) : (
+            <View style={styles.androidBackground} />
+          )
         ),
+        tabBarLabelStyle: styles.tabBarLabel,
       }}>
+      
       <Tabs.Screen
         name="quests"
         options={{
           title: 'BỘ LỆNH',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'list-circle' : 'list-circle-outline'} size={28} color={color} />
+            <View style={[styles.iconContainer, focused && { shadowColor: color }]}>
+              <Ionicons name={focused ? 'list-circle' : 'list-circle-outline'} size={26} color={color} />
+            </View>
           ),
         }}
       />
+
       <Tabs.Screen
         name="index"
         options={{
           title: 'HỒ SƠ',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} size={26} color={color} />
+            <View style={[styles.iconContainer, focused && { shadowColor: color }]}>
+              <Ionicons name={focused ? 'person' : 'person-outline'} size={26} color={color} />
+            </View>
           ),
         }}
       />
+
       <Tabs.Screen
         name="map"
         options={{
           title: 'RADAR',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'map' : 'map-outline'} size={26} color={color} />
+            <View style={[styles.iconContainer, focused && { shadowColor: color }]}>
+              <Ionicons name={focused ? 'map' : 'map-outline'} size={26} color={color} />
+            </View>
           ),
         }}
       />
@@ -63,21 +69,27 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   tabBarFloating: {
     position: 'absolute',
-    bottom: 20, 
+    bottom: 25, 
     left: 20,   
     right: 20,  
     height: 65,
-    backgroundColor: '#050505',
+    elevation: 20,
+    backgroundColor: 'rgba(5, 5, 5, 0.75)', 
     borderRadius: 20, 
     borderWidth: 1,
-    borderColor: 'rgba(176, 0, 255, 0.4)',
+    borderColor: 'rgba(0, 240, 255, 0.3)', 
+    borderTopWidth: 1, 
     paddingBottom: Platform.OS === 'ios' ? 15 : 8,
     paddingTop: 8,
-    elevation: 20,
-    shadowColor: NEON_PURPLE,
-    shadowOpacity: 0.8,
+    overflow: 'hidden',
+    shadowColor: NEON_CYAN,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.5,
     shadowRadius: 15,
-    shadowOffset: { width: 0, height: 0 },
+  },
+  androidBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(5, 5, 5, 0.95)',
   },
   tabBarLabel: {
     fontSize: 10,
@@ -85,15 +97,11 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     letterSpacing: 1,
   },
-  tabBarBackground: {
-    flex: 1,
-    backgroundColor: '#050505',
-    borderRadius: 20,
-    overflow: 'hidden',
+  iconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
   },
-  accentLine: {
-    width: '100%',
-    height: 2,
-    opacity: 0.9,
-  }
 });
