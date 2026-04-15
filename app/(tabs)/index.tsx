@@ -1,17 +1,20 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, ActivityIndicator, Animated, Easing, Platform, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, ActivityIndicator, Animated, Easing, Platform, TouchableOpacity, Modal } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
+import { initializeDailyQuests } from '../utils/questSystem';
 
 const THEME_BLUE_DARK = '#0055ff';
 const THEME_BLUE_LIGHT = '#00aaff';
+
 
 export default function ProfileScreen() {
   const [profile, setProfile] = useState<any>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasAutoSpoken, setHasAutoSpoken] = useState(false);
+  const [activeQuest, setActiveQuest] = useState<any>(null);
 
   const spinAnim = useRef(new Animated.Value(0)).current;
 
@@ -25,6 +28,55 @@ export default function ProfileScreen() {
       })
     ).start();
   }, []);
+
+  useEffect(() => {
+    const checkRealQuests = async () => {
+      // 1. Gọi hàm tạo/lấy nhiệm vụ thật từ questSystem.js
+      const dailyData = await initializeDailyQuests();
+
+      if (dailyData && dailyData.quests) {
+        // 2. Tìm Nhiệm vụ chưa hoàn thành VÀ chưa pop-up báo cho Ký chủ
+        const newQuestIndex = dailyData.quests.findIndex((q: any) => !q.isCompleted && !q.isNotified);
+
+        if (newQuestIndex !== -1) {
+          const newQuest = dailyData.quests[newQuestIndex];
+
+          // 3. Hiển thị Lệnh lên màn hình
+          setActiveQuest(newQuest);
+
+          // 4. Ép Hệ thống dừng mọi âm thanh hiện tại để "Cắt ngang"
+          Speech.stop(); 
+          setIsSpeaking(false);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
+          // 5. Đọc dữ liệu thật của Lệnh
+          const questSpeech = `Cảnh báo! Cảnh báo! Phát hiện bộ lệnh mới: ${newQuest.title}. Nội dung: ${newQuest.description}. Phần thưởng: Cộng ${newQuest.reward} điểm ${newQuest.statName}. Đề nghị ký chủ tiếp nhận!`;
+          Speech.speak(questSpeech, {
+            language: 'vi-VN',
+            rate: 0.95,
+            pitch: 0.8, 
+          });
+
+          // 6. Đánh dấu đã thông báo và lưu lại thẳng vào AsyncStorage
+          dailyData.quests[newQuestIndex].isNotified = true;
+          await AsyncStorage.setItem('@daily_quests', JSON.stringify(dailyData));
+        }
+      }
+    };
+
+    // Đợi 2.5 giây sau khi mở app để tạo hiệu ứng "Cắt ngang Báo cáo Hồ sơ"
+    const timer = setTimeout(() => {
+      checkRealQuests();
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const closeQuestModal = () => {
+    Speech.stop(); 
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setActiveQuest(null);
+  };
 
   const spin = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   const spinReverse = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['360deg', '0deg'] });
@@ -124,11 +176,15 @@ export default function ProfileScreen() {
         
         {/* LÕI LINH HỒN KHÔI PHỤC LẠI BẰNG CODE */}
         <View style={styles.headerArea}>
-          <View style={styles.coreWrapper}>
+          <TouchableOpacity 
+            style={styles.coreWrapper} 
+            onPress={triggerVoiceReport} 
+            activeOpacity={0.7}
+          >
             <Animated.View style={[styles.soulCoreOuter, { transform: [{ rotate: spin }] }]} />
-            <Animated.View style={[styles.soulCoreInner, { transform: [{ rotate: spinReverse }] }]} />
+            <Animated.View style={[styles.soulCoreInner, { transform: [{ rotate: spinReverse }] }, isSpeaking && { borderColor: '#ff003c' }]} />
             <View style={[styles.coreCenter, isSpeaking && { backgroundColor: '#ff003c', shadowColor: '#ff003c' }]} />
-          </View>
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>[ HỒ SƠ CÁ THỂ ]</Text>
         </View>
 
@@ -174,17 +230,38 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          <TouchableOpacity 
-            style={[styles.voiceButton, isSpeaking && { borderColor: '#ff003c', backgroundColor: 'rgba(255, 0, 60, 0.1)' }]} 
-            onPress={triggerVoiceReport}
-          >
-            <Text style={[styles.voiceButtonText, isSpeaking && { color: '#ff003c' }]}>
-              {isSpeaking ? "[ ĐANG BÁO CÁO... NHẤN ĐỂ DỪNG ]" : "[ KÍCH HOẠT BÁO CÁO ÂM THANH ]"}
-            </Text>
-          </TouchableOpacity>
-
         </View>
       </View>
+      {/* MODAL THÔNG BÁO NHIỆM VỤ MỚI */}
+      <Modal visible={!!activeQuest} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.questCard}>
+            {/* Hiệu ứng viền công nghệ */}
+            <View style={[styles.shardTopLeft, { borderColor: '#ff003c' }]} />
+            <View style={[styles.shardBottomRight, { borderColor: '#ff003c' }]} />
+            
+            <Text style={styles.questAlertText}>[ CẢNH BÁO: NHIỆM VỤ MỚI ]</Text>
+            
+            <Text style={styles.questTitle}>{activeQuest?.title}</Text>
+            
+            <View style={styles.questDivider} />
+            
+            <Text style={styles.questSectionLabel}>NỘI DUNG:</Text>
+            <Text style={styles.questDescription}>{activeQuest?.description}</Text>
+            
+            <View style={styles.questDivider} />
+            
+            <Text style={styles.questSectionLabel}>PHẦN THƯỞNG:</Text>
+            <Text style={styles.questReward}>
+              {activeQuest ? `+${activeQuest.reward} ${activeQuest.statName}` : ''}
+            </Text>
+
+            <TouchableOpacity style={styles.acceptButton} onPress={closeQuestModal}>
+              <Text style={styles.acceptButtonText}>TIẾP NHẬN BỘ LỆNH</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -249,5 +326,76 @@ const styles = StyleSheet.create({
   voiceButton: { 
     marginTop: 15, borderWidth: 1, borderColor: THEME_BLUE_DARK, padding: 12, borderRadius: 5, alignItems: 'center', backgroundColor: 'rgba(0, 85, 255, 0.1)' 
   },
-  voiceButtonText: { color: THEME_BLUE_LIGHT, fontSize: 12, fontWeight: 'bold', fontFamily: 'monospace', letterSpacing: 1 }
+  voiceButtonText: { color: THEME_BLUE_LIGHT, fontSize: 12, fontWeight: 'bold', fontFamily: 'monospace', letterSpacing: 1 },
+  // --- CSS CHO MODAL NHIỆM VỤ ---
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  questCard: {
+    width: '100%',
+    backgroundColor: 'rgba(20, 0, 10, 0.95)',
+    borderWidth: 1,
+    borderColor: '#ff003c',
+    padding: 25,
+    position: 'relative',
+  },
+  questAlertText: {
+    color: '#ff003c',
+    fontSize: 16,
+    fontWeight: '900',
+    fontFamily: 'monospace',
+    textAlign: 'center',
+    letterSpacing: 2,
+    marginBottom: 20,
+    textShadowColor: '#ff003c',
+    textShadowRadius: 10,
+  },
+  questTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 15,
+  },
+  questDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 0, 60, 0.3)',
+    marginVertical: 15,
+  },
+  questSectionLabel: {
+    color: '#ff003c',
+    fontSize: 12,
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  questDescription: {
+    color: '#ddd',
+    fontSize: 15,
+    lineHeight: 22,
+    fontStyle: 'italic',
+  },
+  questReward: {
+    color: '#00ffcc', // Màu cyan cho phần thưởng
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  acceptButton: {
+    marginTop: 30,
+    backgroundColor: 'rgba(255, 0, 60, 0.1)',
+    borderWidth: 1,
+    borderColor: '#ff003c',
+    paddingVertical: 15,
+    alignItems: 'center',
+  },
+  acceptButtonText: {
+    color: '#ff003c',
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
+    letterSpacing: 2,
+  },
 });

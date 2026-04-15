@@ -10,6 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 // ==========================================
 const THEME_BLUE_DARK = '#0055ff';
 const THEME_BLUE_LIGHT = '#00aaff';
+const THEME_PINK_LIGHT = '#ff00a0';
 
 // ==========================================
 // NGÂN HÀNG CÂU HỎI ĐA DẠNG & NGẪU NHIÊN
@@ -218,17 +219,20 @@ export default function OnboardingScreen() {
     if (step === 1) {
       return (
         <View style={styles.genderContainer}>
+          {/* NÚT CHỌN NAM (MÀU XANH) */}
           <TouchableOpacity style={styles.genderBox} onPress={() => handleGenderSelect('Nam')}>
             <LinearGradient colors={['rgba(0, 170, 255, 0.2)', 'transparent']} style={styles.genderGradient} />
             <View style={styles.cornerTopLeft} />
             <View style={styles.cornerBottomRight} />
             <Text style={styles.genderText}>NAM</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.genderBox, { borderColor: '#fff' }]} onPress={() => handleGenderSelect('Nữ')}>
-            <LinearGradient colors={['rgba(255, 255, 255, 0.1)', 'transparent']} style={styles.genderGradient} />
-            <View style={[styles.cornerTopLeft, { borderColor: '#fff' }]} />
-            <View style={[styles.cornerBottomRight, { borderColor: '#fff' }]} />
-            <Text style={[styles.genderText, { color: '#fff' }]}>NỮ</Text>
+          
+          {/* NÚT CHỌN NỮ (MÀU HỒNG NEON) */}
+          <TouchableOpacity style={[styles.genderBox, { borderColor: THEME_PINK_LIGHT }]} onPress={() => handleGenderSelect('Nữ')}>
+            <LinearGradient colors={['rgba(255, 0, 160, 0.2)', 'transparent']} style={styles.genderGradient} />
+            <View style={[styles.cornerTopLeft, { borderColor: THEME_PINK_LIGHT }]} />
+            <View style={[styles.cornerBottomRight, { borderColor: THEME_PINK_LIGHT }]} />
+            <Text style={[styles.genderText, { color: THEME_PINK_LIGHT }]}>NỮ</Text>
           </TouchableOpacity>
         </View>
       );
